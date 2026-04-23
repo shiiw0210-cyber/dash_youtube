@@ -34,4 +34,11 @@ export interface CsvRow {
   [key: string]: string;
 }
 
-export type ActiveView = 'overview' | 'videos' | 'analytics' | 'csv' | 'settings';
+export type ActiveView =
+  | 'overview'
+  | 'videos'
+  | 'analytics'
+  | 'content'
+  | 'alerts'
+  | 'csv'
+  | 'settings';
