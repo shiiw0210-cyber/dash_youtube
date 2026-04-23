@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"tsx watch server/index.ts\" \"vite\"",
-    "dev:frontend": "vite",
+    "dev:vite": "vite",
     "server": "tsx watch server/index.ts",
     "build": "tsc -b && vite build",
     "preview": "vite preview"
@@ -25,6 +25,7 @@
     "@types/papaparse": "^5.3.15",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
+    "@vercel/node": "^5.7.13",
     "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.2.1",
     "tsx": "^4.21.0",
