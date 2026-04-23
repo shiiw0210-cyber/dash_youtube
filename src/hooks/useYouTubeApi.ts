@@ -56,7 +56,7 @@ export function useYouTubeApi() {
 
       return videoData.items?.map((item: {
         id: string;
-        snippet: { title: string; publishedAt: string; thumbnails: { medium: { url: string } } };
+        snippet: { title: string; publishedAt: string; description: string; thumbnails: { medium: { url: string } } };
         statistics: { viewCount?: string; likeCount?: string; commentCount?: string };
         contentDetails: { duration: string };
       }) => ({
@@ -64,6 +64,7 @@ export function useYouTubeApi() {
         title: item.snippet.title,
         publishedAt: item.snippet.publishedAt,
         thumbnailUrl: item.snippet.thumbnails.medium?.url ?? '',
+        description: item.snippet.description ?? '',
         viewCount: parseInt(item.statistics.viewCount ?? '0'),
         likeCount: parseInt(item.statistics.likeCount ?? '0'),
         commentCount: parseInt(item.statistics.commentCount ?? '0'),
