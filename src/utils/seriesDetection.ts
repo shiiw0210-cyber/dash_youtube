@@ -11,21 +11,55 @@ export interface SeriesGroup {
   totalViews: number;
 }
 
+const HONORIFICS = '先生|さん|氏|社長|院長|代表|講師|教授|博士|理事長|センター長|主任|先輩';
+const PERFORMER_RE = new RegExp(
+  `([一-龥ぁ-んァ-ヶA-Za-z]{2,8})(${HONORIFICS})`,
+  'g'
+);
+
 /**
- * タイトルから出演者名（"〇〇先生"、"〇〇さん" 等）を抽出
+ * テキスト（タイトル or 概要欄）から出演者名を抽出
  */
-function extractPerformers(title: string): string[] {
+function extractPerformers(text: string): string[] {
   const results = new Set<string>();
-  // 〇〇先生 / 〇〇さん / 〇〇氏 / 〇〇社長
-  const patterns = [
-    /([一-龥ぁ-んァ-ヶA-Za-z]{2,6})(先生|さん|氏|社長|院長|代表|講師|教授|博士)/g,
-  ];
-  for (const p of patterns) {
-    let m: RegExpExecArray | null;
-    while ((m = p.exec(title)) !== null) {
-      results.add(m[1] + m[2]);
+  PERFORMER_RE.lastIndex = 0;
+  let m: RegExpExecArray | null;
+  while ((m = PERFORMER_RE.exec(text)) !== null) {
+    results.add(m[1] + m[2]);
+  }
+  return Array.from(results);
+}
+
+/**
+ * 概要欄の「出演者：〇〇、△△」のような構造化行から名前を抽出
+ */
+function extractFromDescription(description: string): string[] {
+  const results = new Set<string>();
+
+  // パターン1: "出演者：〇〇" / "ゲスト：〇〇" / "講師：〇〇" / "キャスト：〇〇" 等のラベル行
+  const labelRe = /(?:出演者?|ゲスト|講師|キャスト|登場人物|先生方|出演|登壇者?|パネリスト)[：:]\s*([^\n]{2,60})/g;
+  let m: RegExpExecArray | null;
+  while ((m = labelRe.exec(description)) !== null) {
+    // 名前はカンマ・読点・スラッシュ・スペースで区切られていることが多い
+    const names = m[1].split(/[,、・／/\s]+/);
+    for (const raw of names) {
+      const name = raw.trim();
+      if (name.length >= 2 && name.length <= 12) results.add(name);
     }
   }
+
+  // パターン2: 概要欄中の "〇〇先生" / "〇〇さん" 等の敬称付き表現
+  for (const p of extractPerformers(description)) {
+    results.add(p);
+  }
+
+  // パターン3: "▶ 〇〇（役職）" 形式
+  const arrowRe = /[▶►▷→]\s*([一-龥ぁ-んァ-ヶ]{2,8})[　\s]*[（(][^）)]{1,20}[）)]/g;
+  while ((m = arrowRe.exec(description)) !== null) {
+    const name = m[1].trim();
+    if (name.length >= 2) results.add(name);
+  }
+
   return Array.from(results);
 }
 
@@ -96,12 +130,18 @@ export function detectSeries(videos: VideoStats[], minCount = 2): SeriesGroup[] 
     groups.set(key, cur);
   };
 
-  // Brackets & Performers
+  // Brackets & Performers（タイトル + 概要欄の両方を使う）
   for (const v of videos) {
     for (const b of extractBrackets(v.title)) {
       addToGroup(`bracket:${b}`, b, 'bracket', v);
     }
-    for (const p of extractPerformers(v.title)) {
+    // タイトルから出演者検出
+    const titlePerformers = extractPerformers(v.title);
+    // 概要欄から出演者検出
+    const descPerformers = v.description ? extractFromDescription(v.description) : [];
+    // 重複を除いてマージ
+    const allPerformers = Array.from(new Set([...titlePerformers, ...descPerformers]));
+    for (const p of allPerformers) {
       addToGroup(`performer:${p}`, p, 'performer', v);
     }
   }

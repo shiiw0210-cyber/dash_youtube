@@ -12,6 +12,7 @@ export interface VideoStats {
   title: string;
   publishedAt: string;
   thumbnailUrl: string;
+  description?: string;
   viewCount: number;
   likeCount: number;
   commentCount: number;
