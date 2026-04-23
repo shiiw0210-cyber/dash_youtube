@@ -831,6 +831,43 @@ body {
   color: var(--text-muted);
 }
 
+/* ===== LINE Settings ===== */
+.line-setup-steps,
+.line-groupid-guide {
+  background: #f9fafb;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  font-size: 13px;
+}
+
+.line-setup-steps h4,
+.line-groupid-guide h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text);
+}
+
+.line-setup-steps ol,
+.line-groupid-guide ol {
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.line-setup-steps code,
+.line-groupid-guide code {
+  background: #e5e7eb;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
 /* ===== Scrollbar ===== */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }

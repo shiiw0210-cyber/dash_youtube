@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Save, RefreshCw, ExternalLink } from 'lucide-react';
+import { Save, RefreshCw, ExternalLink, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { loadLineConfig, saveLineConfig, sendLineTest } from '../utils/lineNotify';
 
 interface Props {
   apiKey: string;
@@ -14,26 +15,41 @@ export function Settings({ apiKey, channelId, onSave, onFetch, loading, error }:
   const [localKey, setLocalKey] = useState(apiKey);
   const [localChannel, setLocalChannel] = useState(channelId);
 
+  const [lineToken, setLineToken] = useState(() => loadLineConfig().channelAccessToken);
+  const [lineGroupId, setLineGroupId] = useState(() => loadLineConfig().groupId);
+  const [lineTestStatus, setLineTestStatus] = useState<{ ok: boolean; message: string } | null>(null);
+  const [lineTesting, setLineTesting] = useState(false);
+
   function handleSave() {
     onSave(localKey.trim(), localChannel.trim());
+  }
+
+  function handleLineSave() {
+    saveLineConfig({ channelAccessToken: lineToken.trim(), groupId: lineGroupId.trim() });
+    setLineTestStatus({ ok: true, message: '保存しました' });
+  }
+
+  async function handleLineTest() {
+    saveLineConfig({ channelAccessToken: lineToken.trim(), groupId: lineGroupId.trim() });
+    setLineTesting(true);
+    setLineTestStatus(null);
+    const result = await sendLineTest({ channelAccessToken: lineToken.trim(), groupId: lineGroupId.trim() });
+    setLineTestStatus({ ok: result.ok, message: result.ok ? 'テスト送信成功！LINEを確認してください。' : `エラー: ${result.error}` });
+    setLineTesting(false);
   }
 
   return (
     <div className="view-container">
       <h2 className="view-title">設定</h2>
 
+      {/* YouTube API */}
       <div className="settings-card">
         <h3 className="settings-section-title">YouTube Data API v3</h3>
 
         <div className="form-group">
           <label className="form-label">
             API キー
-            <a
-              href="https://console.cloud.google.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="label-link"
-            >
+            <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="label-link">
               <ExternalLink size={12} /> Google Cloud Console
             </a>
           </label>
@@ -44,9 +60,7 @@ export function Settings({ apiKey, channelId, onSave, onFetch, loading, error }:
             value={localKey}
             onChange={(e) => setLocalKey(e.target.value)}
           />
-          <p className="form-hint">
-            Google Cloud Console で YouTube Data API v3 を有効化し、APIキーを発行してください。
-          </p>
+          <p className="form-hint">Google Cloud Console で YouTube Data API v3 を有効化し、APIキーを発行してください。</p>
         </div>
 
         <div className="form-group">
@@ -58,37 +72,110 @@ export function Settings({ apiKey, channelId, onSave, onFetch, loading, error }:
             value={localChannel}
             onChange={(e) => setLocalChannel(e.target.value)}
           />
-          <p className="form-hint">
-            YouTube Studio → 設定 → チャンネル → 基本情報 からコピーできます。
-          </p>
+          <p className="form-hint">YouTube Studio → 設定 → チャンネル → 基本情報 からコピーできます。</p>
         </div>
 
         <div className="form-actions">
           <button className="btn btn-primary" onClick={handleSave}>
             <Save size={16} /> 保存
           </button>
-          <button
-            className="btn btn-secondary"
-            onClick={onFetch}
-            disabled={loading || !localKey || !localChannel}
-          >
+          <button className="btn btn-secondary" onClick={onFetch} disabled={loading || !localKey || !localChannel}>
             <RefreshCw size={16} className={loading ? 'spin' : ''} />
             {loading ? '読み込み中…' : 'データ更新'}
           </button>
         </div>
 
-        {error && (
-          <div className="error-message">
-            <strong>エラー:</strong> {error}
-          </div>
-        )}
+        {error && <div className="error-message"><strong>エラー:</strong> {error}</div>}
       </div>
 
+      {/* LINE 通知 */}
       <div className="settings-card">
-        <h3 className="settings-section-title">ローカルストレージ</h3>
+        <h3 className="settings-section-title">LINE 通知</h3>
+
+        <div className="info-banner" style={{ marginBottom: 20 }}>
+          サムネイルアラートが発生したとき、指定の LINE グループに自動通知します。<br />
+          LINE Developers でチャンネルアクセストークンとグループIDを取得してください。
+          <a
+            href="https://developers.line.biz/ja/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="label-link"
+            style={{ marginLeft: 8 }}
+          >
+            <ExternalLink size={12} /> LINE Developers
+          </a>
+        </div>
+
+        <div className="line-setup-steps">
+          <h4>設定手順</h4>
+          <ol>
+            <li>LINE Developers でプロバイダーを作成 → <strong>Messaging API チャンネル</strong>を作成</li>
+            <li>「チャンネル基本設定」→「チャンネルアクセストークン（長期）」を発行してコピー</li>
+            <li>作成した Bot アカウントを <strong>既存のグループ LINE に招待</strong></li>
+            <li>グループのトークルームを開き、グループ ID を取得（Webhook イベントログから確認可）</li>
+          </ol>
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">チャンネルアクセストークン（長期）</label>
+          <input
+            type="password"
+            className="form-input"
+            placeholder="xxxxxxxxxxxxxxxxxxxxxxxxxxxx..."
+            value={lineToken}
+            onChange={(e) => setLineToken(e.target.value)}
+          />
+        </div>
+
+        <div className="form-group">
+          <label className="form-label">送信先グループ ID</label>
+          <input
+            type="text"
+            className="form-input"
+            placeholder="Cxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+            value={lineGroupId}
+            onChange={(e) => setLineGroupId(e.target.value)}
+          />
+          <p className="form-hint">
+            グループIDは <code>C</code> から始まります。取得方法は下の手順を参照してください。
+          </p>
+        </div>
+
+        <div className="form-actions">
+          <button className="btn btn-primary" onClick={handleLineSave} disabled={!lineToken || !lineGroupId}>
+            <Save size={16} /> 保存
+          </button>
+          <button className="btn btn-secondary" onClick={handleLineTest} disabled={lineTesting || !lineToken || !lineGroupId}>
+            <Send size={16} className={lineTesting ? 'spin' : ''} />
+            {lineTesting ? '送信中…' : 'テスト送信'}
+          </button>
+        </div>
+
+        {lineTestStatus && (
+          <div className={`status-message status-${lineTestStatus.ok ? 'success' : 'error'}`}>
+            {lineTestStatus.ok ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+            {lineTestStatus.message}
+          </div>
+        )}
+
+        <div className="line-groupid-guide">
+          <h4>グループ ID の取得方法</h4>
+          <ol>
+            <li>LINE Developers の Messaging API チャンネル → 「Webhook URL」を設定（例：<code>https://your-server/webhook</code>）</li>
+            <li>グループで Bot にメッセージを送ると Webhook に <code>source.groupId</code> が届く</li>
+            <li>または <a href="https://github.com/line/line-bot-sdk-nodejs" target="_blank" rel="noopener noreferrer">ngrok</a> を使ってローカルで一時的に受信して確認</li>
+          </ol>
+          <p className="form-hint" style={{ marginTop: 8 }}>
+            ※ 簡単な方法：Bot をグループに招待後、グループで「グループID」と送ると自動返信するシンプルな Webhook を一時的に立てる方法もあります。
+          </p>
+        </div>
+      </div>
+
+      {/* ローカルストレージ */}
+      <div className="settings-card">
+        <h3 className="settings-section-title">プライバシー</h3>
         <p className="form-hint">
-          API キーとチャンネル ID はブラウザのローカルストレージに保存されます。
-          外部サーバーには送信されません。
+          すべての設定（APIキー、LINE トークン等）はブラウザのローカルストレージに保存されます。外部サーバーには送信されません。
         </p>
       </div>
     </div>
