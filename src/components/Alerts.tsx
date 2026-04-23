@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
-import { AlertTriangle, ExternalLink, Settings as SettingsIcon } from 'lucide-react';
+import { AlertTriangle, ExternalLink, Settings as SettingsIcon, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { detectThumbnailAlerts, DEFAULT_ALERT_CONFIG, type AlertConfig } from '../utils/alertRules';
+import { loadLineConfig, sendLineAlerts } from '../utils/lineNotify';
 import { formatNumber } from '../utils/formatters';
 import type { VideoStats } from '../types';
 
@@ -25,6 +26,8 @@ function saveConfig(c: AlertConfig) {
 export function Alerts({ videos }: Props) {
   const [config, setConfig] = useState<AlertConfig>(() => loadConfig());
   const [showSettings, setShowSettings] = useState(false);
+  const [lineSending, setLineSending] = useState(false);
+  const [lineStatus, setLineStatus] = useState<{ ok: boolean; message: string } | null>(null);
 
   const alerts = useMemo(() => detectThumbnailAlerts(videos, config), [videos, config]);
 
@@ -39,6 +42,15 @@ export function Alerts({ videos }: Props) {
     );
   }
 
+  async function handleLineSend() {
+    setLineSending(true);
+    setLineStatus(null);
+    const config = loadLineConfig();
+    const result = await sendLineAlerts(config, alerts);
+    setLineStatus({ ok: result.ok, message: result.ok ? 'LINE に送信しました！' : `エラー: ${result.error}` });
+    setLineSending(false);
+  }
+
   const updateConfig = (patch: Partial<AlertConfig>) => {
     const next = { ...config, ...patch };
     setConfig(next);
@@ -49,10 +61,28 @@ export function Alerts({ videos }: Props) {
     <div className="view-container">
       <div className="title-row">
         <h2 className="view-title" style={{ marginBottom: 0 }}>サムネイルアラート</h2>
-        <button className="btn btn-secondary" onClick={() => setShowSettings((s) => !s)}>
-          <SettingsIcon size={14} /> 閾値設定
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="btn btn-secondary"
+            onClick={handleLineSend}
+            disabled={lineSending || alerts.length === 0}
+            title="アラートを LINE グループに送信"
+          >
+            <Send size={14} className={lineSending ? 'spin' : ''} />
+            {lineSending ? '送信中…' : 'LINE に送信'}
+          </button>
+          <button className="btn btn-secondary" onClick={() => setShowSettings((s) => !s)}>
+            <SettingsIcon size={14} /> 閾値設定
+          </button>
+        </div>
       </div>
+
+      {lineStatus && (
+        <div className={`status-message status-${lineStatus.ok ? 'success' : 'error'}`} style={{ marginBottom: 16 }}>
+          {lineStatus.ok ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+          {lineStatus.message}
+        </div>
+      )}
 
       {showSettings && (
         <div className="alert-settings-card">
