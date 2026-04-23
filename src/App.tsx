@@ -3,6 +3,8 @@ import { Sidebar } from './components/Sidebar';
 import { Overview } from './components/Overview';
 import { VideoTable } from './components/VideoTable';
 import { Charts } from './components/Charts';
+import { ContentAnalysis } from './components/ContentAnalysis';
+import { Alerts } from './components/Alerts';
 import { CsvImport } from './components/CsvImport';
 import { Settings } from './components/Settings';
 import { useYouTubeApi } from './hooks/useYouTubeApi';
@@ -65,8 +67,10 @@ export function App() {
       />
       <main className="main">
         {activeView === 'overview' && <Overview channel={channel} videos={videos} />}
+        {activeView === 'alerts' && <Alerts videos={videos} />}
         {activeView === 'videos' && <VideoTable videos={videos} />}
         {activeView === 'analytics' && <Charts dailyMetrics={dailyMetrics} videos={videos} />}
+        {activeView === 'content' && <ContentAnalysis videos={videos} />}
         {activeView === 'csv' && (
           <CsvImport
             onDailyMetrics={setDailyMetrics}
