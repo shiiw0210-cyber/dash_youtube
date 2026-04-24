@@ -874,6 +874,48 @@ body {
 ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
 
+/* ===== Sidebar Footer & View Toggle ===== */
+.sidebar-footer {
+  padding: 12px 8px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  margin-top: auto;
+}
+
+.view-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 9px 12px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  color: var(--sidebar-muted);
+  font-size: 12px;
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.view-toggle-btn:hover {
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+  border-color: rgba(255,255,255,0.2);
+}
+
+.view-toggle-btn--active {
+  background: rgba(37,99,235,0.2);
+  border-color: rgba(37,99,235,0.5);
+  color: #93c5fd;
+}
+
+.view-toggle-btn--active:hover {
+  background: rgba(37,99,235,0.3);
+  color: #bfdbfe;
+}
+
 /* ===== Mobile Header ===== */
 .mobile-header {
   display: none;
@@ -930,6 +972,22 @@ body {
 .mobile-refresh:hover:not(:disabled) { color: #fff; background: rgba(255,255,255,0.12); }
 .mobile-refresh:disabled { opacity: 0.4; cursor: not-allowed; }
 
+.mobile-exit-preview {
+  background: rgba(37,99,235,0.25);
+  border: 1px solid rgba(37,99,235,0.5);
+  color: #93c5fd;
+  cursor: pointer;
+  padding: 5px 8px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+
+.mobile-exit-preview:hover { background: rgba(37,99,235,0.4); }
+
 /* ===== Sidebar Overlay & Close ===== */
 .sidebar-overlay {
   position: fixed;
@@ -962,6 +1020,52 @@ body {
 }
 
 .sidebar-close:hover { color: #fff; background: rgba(255,255,255,0.1); }
+
+/* ===== Force Mobile Preview (desktop上でスマホレイアウトを強制) ===== */
+.force-mobile .mobile-header { display: flex !important; }
+.force-mobile .sidebar-close { display: flex !important; }
+
+.force-mobile .sidebar {
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 268px;
+  z-index: 200;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.45);
+}
+
+.force-mobile .sidebar--open { transform: translateX(0); }
+
+.force-mobile .main { margin-left: 0; padding-top: 52px; }
+.force-mobile .view-container { padding: 16px; }
+.force-mobile .view-title { font-size: 18px; margin-bottom: 16px; }
+.force-mobile .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 20px; }
+.force-mobile .stat-card { padding: 14px 12px; gap: 10px; border-radius: 10px; }
+.force-mobile .stat-icon { width: 36px; height: 36px; border-radius: 8px; }
+.force-mobile .stat-value { font-size: 20px; }
+.force-mobile .top-video-item { padding: 10px 12px; gap: 10px; }
+.force-mobile .top-thumb { width: 72px; height: 41px; }
+.force-mobile .top-rank { width: 20px; font-size: 14px; }
+.force-mobile .chart-section { padding: 14px 12px; }
+.force-mobile .data-table th,
+.force-mobile .data-table td { padding: 8px 10px; font-size: 12px; }
+.force-mobile .table-thumb { width: 64px; height: 36px; }
+.force-mobile .title-cell { max-width: 180px; }
+.force-mobile .alert-item { flex-direction: column; gap: 10px; align-items: flex-start; }
+.force-mobile .alert-thumb { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 8px; }
+.force-mobile .alert-action { width: 100%; display: flex; justify-content: flex-end; }
+.force-mobile .series-grid { grid-template-columns: 1fr; gap: 12px; }
+.force-mobile .csv-grid { grid-template-columns: 1fr; gap: 12px; }
+.force-mobile .tab-group { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; gap: 0; }
+.force-mobile .tab-group::-webkit-scrollbar { display: none; }
+.force-mobile .tab { white-space: nowrap; flex-shrink: 0; padding: 10px 14px; font-size: 12px; }
+.force-mobile .title-row { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 16px; }
+.force-mobile .settings-card { padding: 16px; border-radius: 10px; }
+.force-mobile .form-input { max-width: 100%; }
+.force-mobile .form-actions { flex-direction: column; }
+.force-mobile .btn { justify-content: center; width: 100%; }
+.force-mobile .section { margin-bottom: 20px; }
+.force-mobile .section-title { font-size: 14px; margin-bottom: 12px; }
+.force-mobile .alert-settings-card { padding: 14px 16px; }
 
 /* ===== Responsive — Tablet (≤1024px) ===== */
 @media (max-width: 1024px) {

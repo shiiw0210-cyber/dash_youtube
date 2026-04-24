@@ -1,4 +1,4 @@
-import { BarChart2, Video, TrendingUp, Upload, Settings, Youtube, Lightbulb, AlertTriangle, X, type LucideIcon } from 'lucide-react';
+import { BarChart2, Video, TrendingUp, Upload, Settings, Youtube, Lightbulb, AlertTriangle, X, Smartphone, Monitor, type LucideIcon } from 'lucide-react';
 import type { ActiveView } from '../types';
 
 interface Props {
@@ -8,6 +8,8 @@ interface Props {
   thumbnailUrl?: string;
   isOpen?: boolean;
   onClose?: () => void;
+  mobilePreview?: boolean;
+  onToggleMobilePreview?: () => void;
 }
 
 const ITEMS: { id: ActiveView; label: string; Icon: LucideIcon }[] = [
@@ -20,7 +22,7 @@ const ITEMS: { id: ActiveView; label: string; Icon: LucideIcon }[] = [
   { id: 'settings', label: '設定', Icon: Settings },
 ];
 
-export function Sidebar({ active, onChange, channelTitle, thumbnailUrl, isOpen, onClose }: Props) {
+export function Sidebar({ active, onChange, channelTitle, thumbnailUrl, isOpen, onClose, mobilePreview, onToggleMobilePreview }: Props) {
   function handleNav(id: ActiveView) {
     onChange(id);
     onClose?.();
@@ -57,6 +59,17 @@ export function Sidebar({ active, onChange, channelTitle, thumbnailUrl, isOpen, 
             </button>
           ))}
         </nav>
+
+        <div className="sidebar-footer">
+          <button
+            className={`view-toggle-btn${mobilePreview ? ' view-toggle-btn--active' : ''}`}
+            onClick={onToggleMobilePreview}
+            title={mobilePreview ? 'デスクトップ表示に切替' : 'スマホ表示に切替'}
+          >
+            {mobilePreview ? <Monitor size={15} /> : <Smartphone size={15} />}
+            <span>{mobilePreview ? 'デスクトップ表示' : 'スマホ表示'}</span>
+          </button>
+        </div>
       </aside>
     </>
   );

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Menu, Youtube, RefreshCw } from 'lucide-react';
+import { Menu, Youtube, RefreshCw, Monitor } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { Overview } from './components/Overview';
 import { VideoTable } from './components/VideoTable';
@@ -16,6 +16,7 @@ const CHANNEL_ID = 'UCmxAaack6dmXAxwgnhzX0MQ';
 export function App() {
   const [activeView, setActiveView] = useState<ActiveView>('overview');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobilePreview, setMobilePreview] = useState(false);
   const [channel, setChannel] = useState<ChannelStats | null>(null);
   const [videos, setVideos] = useState<VideoStats[]>([]);
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics[]>([]);
@@ -30,6 +31,13 @@ export function App() {
     if (ch) setChannel(ch);
     if (vids.length > 0) setVideos(vids);
   }, [fetchChannel, fetchVideos]);
+
+  function handleToggleMobilePreview() {
+    setMobilePreview((prev) => {
+      if (!prev) setSidebarOpen(false);
+      return !prev;
+    });
+  }
 
   // CSVの動画別データをAPIデータとマージ
   function handleVideoMetrics(csvRows: Partial<VideoStats>[]) {
@@ -49,13 +57,23 @@ export function App() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="app">
+    <div className={`app${mobilePreview ? ' force-mobile' : ''}`}>
       <header className="mobile-header">
         <button className="hamburger" onClick={() => setSidebarOpen(true)} aria-label="メニューを開く">
           <Menu size={22} />
         </button>
         <Youtube size={22} color="#FF0000" />
         <span className="mobile-title">YouTube Analytics</span>
+        {mobilePreview && (
+          <button
+            className="mobile-exit-preview"
+            onClick={handleToggleMobilePreview}
+            aria-label="デスクトップ表示に切替"
+            title="デスクトップ表示に切替"
+          >
+            <Monitor size={18} />
+          </button>
+        )}
         <button className="mobile-refresh" onClick={handleFetch} disabled={loading} aria-label="データ更新">
           <RefreshCw size={18} className={loading ? 'spin' : ''} />
         </button>
@@ -67,6 +85,8 @@ export function App() {
         thumbnailUrl={channel?.thumbnailUrl}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
+        mobilePreview={mobilePreview}
+        onToggleMobilePreview={handleToggleMobilePreview}
       />
       <main className="main">
         {activeView === 'overview' && <Overview channel={channel} videos={videos} />}
