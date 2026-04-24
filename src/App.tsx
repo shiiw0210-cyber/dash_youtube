@@ -10,31 +10,24 @@ import { Settings } from './components/Settings';
 import { useYouTubeApi } from './hooks/useYouTubeApi';
 import type { ActiveView, ChannelStats, VideoStats, DailyMetrics } from './types';
 
-const STORAGE_KEY_CH = 'yt_dash_channel_id';
+const CHANNEL_ID = 'UCmxAaack6dmXAxwgnhzX0MQ';
 
 export function App() {
   const [activeView, setActiveView] = useState<ActiveView>('overview');
-  const [channelId, setChannelId] = useState(() => localStorage.getItem(STORAGE_KEY_CH) ?? 'UCmxAaack6dmXAxwgnhzX0MQ');
   const [channel, setChannel] = useState<ChannelStats | null>(null);
   const [videos, setVideos] = useState<VideoStats[]>([]);
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics[]>([]);
 
   const { fetchChannel, fetchVideos, loading, error } = useYouTubeApi();
 
-  function handleSaveSettings(chId: string) {
-    setChannelId(chId);
-    localStorage.setItem(STORAGE_KEY_CH, chId);
-  }
-
   const handleFetch = useCallback(async () => {
-    if (!channelId) return;
     const [ch, vids] = await Promise.all([
-      fetchChannel(channelId),
-      fetchVideos(channelId),
+      fetchChannel(CHANNEL_ID),
+      fetchVideos(CHANNEL_ID),
     ]);
     if (ch) setChannel(ch);
     if (vids.length > 0) setVideos(vids);
-  }, [channelId, fetchChannel, fetchVideos]);
+  }, [fetchChannel, fetchVideos]);
 
   // CSVの動画別データをAPIデータとマージ
   function handleVideoMetrics(csvRows: Partial<VideoStats>[]) {
@@ -50,7 +43,7 @@ export function App() {
 
   // 初回ロード
   useEffect(() => {
-    if (channelId) handleFetch();
+    handleFetch();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -77,8 +70,6 @@ export function App() {
         )}
         {activeView === 'settings' && (
           <Settings
-            channelId={channelId}
-            onSave={handleSaveSettings}
             onFetch={handleFetch}
             loading={loading}
             error={error}
