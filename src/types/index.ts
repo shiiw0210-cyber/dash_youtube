@@ -35,6 +35,21 @@ export interface CsvRow {
   [key: string]: string;
 }
 
+export interface ScheduleRow {
+  id: string;
+  shoot: string;
+  shootDate: string;
+  deliveryDate: string;
+  publishDate: string;
+  editor: string;
+  thumbnail: string;
+  title: string;
+  content: string;
+  materialUrl: string;
+  updatedAt: string;
+  todo?: boolean;
+}
+
 export type ActiveView =
   | 'overview'
   | 'videos'
@@ -42,4 +57,5 @@ export type ActiveView =
   | 'content'
   | 'alerts'
   | 'csv'
+  | 'schedule'
   | 'settings';
