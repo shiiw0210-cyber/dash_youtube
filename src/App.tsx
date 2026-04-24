@@ -10,35 +10,31 @@ import { Settings } from './components/Settings';
 import { useYouTubeApi } from './hooks/useYouTubeApi';
 import type { ActiveView, ChannelStats, VideoStats, DailyMetrics } from './types';
 
-const STORAGE_KEY_API = 'yt_dash_api_key';
 const STORAGE_KEY_CH = 'yt_dash_channel_id';
 
 export function App() {
   const [activeView, setActiveView] = useState<ActiveView>('overview');
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem(STORAGE_KEY_API) ?? '');
-  const [channelId, setChannelId] = useState(() => localStorage.getItem(STORAGE_KEY_CH) ?? '');
+  const [channelId, setChannelId] = useState(() => localStorage.getItem(STORAGE_KEY_CH) ?? 'UCmxAaack6dmXAxwgnhzX0MQ');
   const [channel, setChannel] = useState<ChannelStats | null>(null);
   const [videos, setVideos] = useState<VideoStats[]>([]);
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics[]>([]);
 
   const { fetchChannel, fetchVideos, loading, error } = useYouTubeApi();
 
-  function handleSaveSettings(key: string, chId: string) {
-    setApiKey(key);
+  function handleSaveSettings(chId: string) {
     setChannelId(chId);
-    localStorage.setItem(STORAGE_KEY_API, key);
     localStorage.setItem(STORAGE_KEY_CH, chId);
   }
 
   const handleFetch = useCallback(async () => {
-    if (!apiKey || !channelId) return;
+    if (!channelId) return;
     const [ch, vids] = await Promise.all([
-      fetchChannel(apiKey, channelId),
-      fetchVideos(apiKey, channelId),
+      fetchChannel(channelId),
+      fetchVideos(channelId),
     ]);
     if (ch) setChannel(ch);
     if (vids.length > 0) setVideos(vids);
-  }, [apiKey, channelId, fetchChannel, fetchVideos]);
+  }, [channelId, fetchChannel, fetchVideos]);
 
   // CSVの動画別データをAPIデータとマージ
   function handleVideoMetrics(csvRows: Partial<VideoStats>[]) {
@@ -54,7 +50,7 @@ export function App() {
 
   // 初回ロード
   useEffect(() => {
-    if (apiKey && channelId) handleFetch();
+    if (channelId) handleFetch();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
@@ -81,7 +77,6 @@ export function App() {
         )}
         {activeView === 'settings' && (
           <Settings
-            apiKey={apiKey}
             channelId={channelId}
             onSave={handleSaveSettings}
             onFetch={handleFetch}

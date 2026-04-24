@@ -1,21 +1,25 @@
 import { useState, useCallback } from 'react';
 import type { ChannelStats, VideoStats } from '../types';
 
-const BASE = 'https://www.googleapis.com/youtube/v3';
-
 export function useYouTubeApi() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchChannel = useCallback(async (apiKey: string, channelId: string): Promise<ChannelStats | null> => {
+  const fetchChannel = useCallback(async (channelId: string): Promise<ChannelStats | null> => {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        `${BASE}/channels?part=snippet,statistics&id=${channelId}&key=${apiKey}`
-      );
-      if (!res.ok) throw new Error(`API Error: ${res.status}`);
-      const data = await res.json();
+      const res = await fetch(`/api/youtube/channel?channelId=${encodeURIComponent(channelId)}`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: { message?: string } | string };
+        const msg = typeof data.error === 'object' ? data.error?.message : data.error;
+        throw new Error(msg ?? `API Error: ${res.status}`);
+      }
+      const data = await res.json() as { items?: {
+        id: string;
+        snippet: { title: string; thumbnails: { default: { url: string } } };
+        statistics: { subscriberCount?: string; viewCount?: string; videoCount?: string };
+      }[] };
       const item = data.items?.[0];
       if (!item) throw new Error('チャンネルが見つかりません');
       return {
@@ -34,32 +38,26 @@ export function useYouTubeApi() {
     }
   }, []);
 
-  const fetchVideos = useCallback(async (apiKey: string, channelId: string, maxResults = 50): Promise<VideoStats[]> => {
+  const fetchVideos = useCallback(async (channelId: string, maxResults = 50): Promise<VideoStats[]> => {
     setLoading(true);
     setError(null);
     try {
-      // 1. 動画IDリストを取得
-      const searchRes = await fetch(
-        `${BASE}/search?part=id&channelId=${channelId}&type=video&order=date&maxResults=${maxResults}&key=${apiKey}`
+      const res = await fetch(
+        `/api/youtube/videos?channelId=${encodeURIComponent(channelId)}&maxResults=${maxResults}`
       );
-      if (!searchRes.ok) throw new Error(`API Error: ${searchRes.status}`);
-      const searchData = await searchRes.json();
-      const ids: string[] = searchData.items?.map((i: { id: { videoId: string } }) => i.id.videoId) ?? [];
-      if (ids.length === 0) return [];
-
-      // 2. 動画詳細を取得
-      const videoRes = await fetch(
-        `${BASE}/videos?part=snippet,statistics,contentDetails&id=${ids.join(',')}&key=${apiKey}`
-      );
-      if (!videoRes.ok) throw new Error(`API Error: ${videoRes.status}`);
-      const videoData = await videoRes.json();
-
-      return videoData.items?.map((item: {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({})) as { error?: { message?: string } | string };
+        const msg = typeof data.error === 'object' ? data.error?.message : data.error;
+        throw new Error(msg ?? `API Error: ${res.status}`);
+      }
+      const videoData = await res.json() as { items?: {
         id: string;
         snippet: { title: string; publishedAt: string; description: string; thumbnails: { medium: { url: string } } };
         statistics: { viewCount?: string; likeCount?: string; commentCount?: string };
         contentDetails: { duration: string };
-      }) => ({
+      }[] };
+
+      return videoData.items?.map((item) => ({
         videoId: item.id,
         title: item.snippet.title,
         publishedAt: item.snippet.publishedAt,
