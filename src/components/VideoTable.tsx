@@ -33,9 +33,11 @@ export function VideoTable({ videos }: Props) {
               <th>尺</th>
               <th>視聴回数</th>
               <th>いいね</th>
-              <th>コメント</th>
+              <th>インプレ</th>
               <th>CTR</th>
+              <th>維持率</th>
               <th>視聴時間</th>
+              <th>推定収益</th>
               <th></th>
             </tr>
           </thead>
@@ -54,13 +56,25 @@ export function VideoTable({ videos }: Props) {
                 <td className="nowrap">{formatDuration(v.duration)}</td>
                 <td className="num-cell">{formatNumber(v.viewCount)}</td>
                 <td className="num-cell">{formatNumber(v.likeCount)}</td>
-                <td className="num-cell">{formatNumber(v.commentCount)}</td>
+                <td className="num-cell">
+                  {v.impressions !== undefined ? formatNumber(v.impressions) : '—'}
+                </td>
                 <td className="num-cell">
                   {v.ctr !== undefined ? (v.ctr * 100).toFixed(1) + '%' : '—'}
                 </td>
                 <td className="num-cell">
+                  {v.averageViewPercentage !== undefined
+                    ? v.averageViewPercentage.toFixed(1) + '%'
+                    : '—'}
+                </td>
+                <td className="num-cell">
                   {v.watchTimeMinutes !== undefined
                     ? formatNumber(Math.round(v.watchTimeMinutes)) + ' 分'
+                    : '—'}
+                </td>
+                <td className="num-cell">
+                  {v.estimatedRevenue !== undefined
+                    ? '$' + v.estimatedRevenue.toFixed(2)
                     : '—'}
                 </td>
                 <td>

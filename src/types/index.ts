@@ -7,6 +7,17 @@ export interface ChannelStats {
   thumbnailUrl: string;
 }
 
+export interface AnalyticsTotals {
+  views?: number;
+  estimatedMinutesWatched?: number;
+  subscribersGained?: number;
+  estimatedRevenue?: number;
+  impressions?: number;
+  averageCtr?: number;
+  startDate?: string;
+  endDate?: string;
+}
+
 export interface VideoStats {
   videoId: string;
   title: string;
@@ -19,8 +30,11 @@ export interface VideoStats {
   duration: string;
   watchTimeMinutes?: number;
   averageViewDuration?: number;
+  averageViewPercentage?: number;
   impressions?: number;
   ctr?: number;
+  estimatedRevenue?: number;
+  subscribersGained?: number;
 }
 
 export interface DailyMetrics {
