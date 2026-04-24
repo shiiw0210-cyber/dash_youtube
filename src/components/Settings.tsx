@@ -3,16 +3,14 @@ import { Save, RefreshCw, ExternalLink, Send, CheckCircle, AlertCircle } from 'l
 import { loadLineConfig, saveLineConfig, sendLineTest } from '../utils/lineNotify';
 
 interface Props {
-  apiKey: string;
   channelId: string;
-  onSave: (apiKey: string, channelId: string) => void;
+  onSave: (channelId: string) => void;
   onFetch: () => void;
   loading: boolean;
   error: string | null;
 }
 
-export function Settings({ apiKey, channelId, onSave, onFetch, loading, error }: Props) {
-  const [localKey, setLocalKey] = useState(apiKey);
+export function Settings({ channelId, onSave, onFetch, loading, error }: Props) {
   const [localChannel, setLocalChannel] = useState(channelId);
 
   const [lineToken, setLineToken] = useState(() => loadLineConfig().channelAccessToken);
@@ -21,7 +19,7 @@ export function Settings({ apiKey, channelId, onSave, onFetch, loading, error }:
   const [lineTesting, setLineTesting] = useState(false);
 
   function handleSave() {
-    onSave(localKey.trim(), localChannel.trim());
+    onSave(localChannel.trim());
   }
 
   function handleLineSave() {
@@ -46,21 +44,12 @@ export function Settings({ apiKey, channelId, onSave, onFetch, loading, error }:
       <div className="settings-card">
         <h3 className="settings-section-title">YouTube Data API v3</h3>
 
-        <div className="form-group">
-          <label className="form-label">
-            API キー
-            <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="label-link">
-              <ExternalLink size={12} /> Google Cloud Console
-            </a>
-          </label>
-          <input
-            type="password"
-            className="form-input"
-            placeholder="AIza..."
-            value={localKey}
-            onChange={(e) => setLocalKey(e.target.value)}
-          />
-          <p className="form-hint">Google Cloud Console で YouTube Data API v3 を有効化し、APIキーを発行してください。</p>
+        <div className="info-banner" style={{ marginBottom: 20 }}>
+          APIキーはサーバー環境変数（<code>YOUTUBE_API_KEY</code>）として管理されています。ブラウザには保存されません。<br />
+          Vercel にデプロイする場合は、Vercel ダッシュボード → Project Settings → Environment Variables に設定してください。
+          <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" className="label-link" style={{ marginLeft: 8 }}>
+            <ExternalLink size={12} /> Google Cloud Console
+          </a>
         </div>
 
         <div className="form-group">
@@ -79,7 +68,7 @@ export function Settings({ apiKey, channelId, onSave, onFetch, loading, error }:
           <button className="btn btn-primary" onClick={handleSave}>
             <Save size={16} /> 保存
           </button>
-          <button className="btn btn-secondary" onClick={onFetch} disabled={loading || !localKey || !localChannel}>
+          <button className="btn btn-secondary" onClick={onFetch} disabled={loading || !localChannel}>
             <RefreshCw size={16} className={loading ? 'spin' : ''} />
             {loading ? '読み込み中…' : 'データ更新'}
           </button>
@@ -175,7 +164,7 @@ export function Settings({ apiKey, channelId, onSave, onFetch, loading, error }:
       <div className="settings-card">
         <h3 className="settings-section-title">プライバシー</h3>
         <p className="form-hint">
-          すべての設定（APIキー、LINE トークン等）はブラウザのローカルストレージに保存されます。外部サーバーには送信されません。
+          チャンネル ID および LINE トークンはブラウザのローカルストレージに保存されます。YouTube APIキーはサーバー側の環境変数で管理され、ブラウザには保存されません。
         </p>
       </div>
     </div>
