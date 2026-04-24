@@ -58,4 +58,5 @@ export type ActiveView =
   | 'alerts'
   | 'csv'
   | 'schedule'
+  | 'ctr'
   | 'settings';

@@ -9,6 +9,7 @@ import { Alerts } from './components/Alerts';
 import { CsvImport } from './components/CsvImport';
 import { Settings } from './components/Settings';
 import { Schedule } from './components/Schedule';
+import { CtrRanking } from './components/CtrRanking';
 import { useYouTubeApi } from './hooks/useYouTubeApi';
 import type { ActiveView, ChannelStats, VideoStats, DailyMetrics } from './types';
 
@@ -93,6 +94,7 @@ export function App() {
         {activeView === 'overview' && <Overview channel={channel} videos={videos} />}
         {activeView === 'schedule' && <Schedule videos={videos} />}
         {activeView === 'alerts' && <Alerts videos={videos} />}
+        {activeView === 'ctr' && <CtrRanking videos={videos} />}
         {activeView === 'videos' && <VideoTable videos={videos} />}
         {activeView === 'analytics' && <Charts dailyMetrics={dailyMetrics} videos={videos} />}
         {activeView === 'content' && <ContentAnalysis videos={videos} />}
