@@ -14,7 +14,7 @@ const STORAGE_KEY_CH = 'yt_dash_channel_id';
 
 export function App() {
   const [activeView, setActiveView] = useState<ActiveView>('overview');
-  const [channelId, setChannelId] = useState(() => localStorage.getItem(STORAGE_KEY_CH) ?? '');
+  const [channelId, setChannelId] = useState(() => localStorage.getItem(STORAGE_KEY_CH) ?? 'UCmxAaack6dmXAxwgnhzX0MQ');
   const [channel, setChannel] = useState<ChannelStats | null>(null);
   const [videos, setVideos] = useState<VideoStats[]>([]);
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics[]>([]);
