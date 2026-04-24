@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { Menu, Youtube, RefreshCw } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { Overview } from './components/Overview';
 import { VideoTable } from './components/VideoTable';
@@ -14,6 +15,7 @@ const CHANNEL_ID = 'UCmxAaack6dmXAxwgnhzX0MQ';
 
 export function App() {
   const [activeView, setActiveView] = useState<ActiveView>('overview');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [channel, setChannel] = useState<ChannelStats | null>(null);
   const [videos, setVideos] = useState<VideoStats[]>([]);
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics[]>([]);
@@ -48,11 +50,23 @@ export function App() {
 
   return (
     <div className="app">
+      <header className="mobile-header">
+        <button className="hamburger" onClick={() => setSidebarOpen(true)} aria-label="メニューを開く">
+          <Menu size={22} />
+        </button>
+        <Youtube size={22} color="#FF0000" />
+        <span className="mobile-title">YouTube Analytics</span>
+        <button className="mobile-refresh" onClick={handleFetch} disabled={loading} aria-label="データ更新">
+          <RefreshCw size={18} className={loading ? 'spin' : ''} />
+        </button>
+      </header>
       <Sidebar
         active={activeView}
         onChange={setActiveView}
         channelTitle={channel?.channelTitle}
         thumbnailUrl={channel?.thumbnailUrl}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
       <main className="main">
         {activeView === 'overview' && <Overview channel={channel} videos={videos} />}
