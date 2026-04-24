@@ -1,4 +1,4 @@
-import { BarChart2, Video, TrendingUp, Upload, Settings, Youtube, Lightbulb, AlertTriangle, type LucideIcon } from 'lucide-react';
+import { BarChart2, Video, TrendingUp, Upload, Settings, Youtube, Lightbulb, AlertTriangle, X, type LucideIcon } from 'lucide-react';
 import type { ActiveView } from '../types';
 
 interface Props {
@@ -6,6 +6,8 @@ interface Props {
   onChange: (v: ActiveView) => void;
   channelTitle?: string;
   thumbnailUrl?: string;
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
 const ITEMS: { id: ActiveView; label: string; Icon: LucideIcon }[] = [
@@ -18,33 +20,44 @@ const ITEMS: { id: ActiveView; label: string; Icon: LucideIcon }[] = [
   { id: 'settings', label: '設定', Icon: Settings },
 ];
 
-export function Sidebar({ active, onChange, channelTitle, thumbnailUrl }: Props) {
+export function Sidebar({ active, onChange, channelTitle, thumbnailUrl, isOpen, onClose }: Props) {
+  function handleNav(id: ActiveView) {
+    onChange(id);
+    onClose?.();
+  }
+
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        <Youtube size={28} color="#FF0000" />
-        <span className="sidebar-title">YouTube Analytics</span>
-      </div>
-
-      {channelTitle && (
-        <div className="sidebar-channel">
-          {thumbnailUrl && <img src={thumbnailUrl} alt="channel" className="channel-thumb" />}
-          <span className="channel-name">{channelTitle}</span>
-        </div>
-      )}
-
-      <nav className="sidebar-nav">
-        {ITEMS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            className={`nav-item ${active === id ? 'nav-item--active' : ''}`}
-            onClick={() => onChange(id)}
-          >
-            <Icon size={18} />
-            <span>{label}</span>
+    <>
+      {isOpen && <div className="sidebar-overlay" onClick={onClose} />}
+      <aside className={`sidebar${isOpen ? ' sidebar--open' : ''}`}>
+        <div className="sidebar-header">
+          <Youtube size={28} color="#FF0000" />
+          <span className="sidebar-title">YouTube Analytics</span>
+          <button className="sidebar-close" onClick={onClose} aria-label="メニューを閉じる">
+            <X size={18} />
           </button>
-        ))}
-      </nav>
-    </aside>
+        </div>
+
+        {channelTitle && (
+          <div className="sidebar-channel">
+            {thumbnailUrl && <img src={thumbnailUrl} alt="channel" className="channel-thumb" />}
+            <span className="channel-name">{channelTitle}</span>
+          </div>
+        )}
+
+        <nav className="sidebar-nav">
+          {ITEMS.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              className={`nav-item ${active === id ? 'nav-item--active' : ''}`}
+              onClick={() => handleNav(id)}
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      </aside>
+    </>
   );
 }
