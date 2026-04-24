@@ -1,26 +1,18 @@
 import { useState } from 'react';
-import { Save, RefreshCw, ExternalLink, Send, CheckCircle, AlertCircle } from 'lucide-react';
+import { RefreshCw, ExternalLink, Send, CheckCircle, AlertCircle, Save } from 'lucide-react';
 import { loadLineConfig, saveLineConfig, sendLineTest } from '../utils/lineNotify';
 
 interface Props {
-  channelId: string;
-  onSave: (channelId: string) => void;
   onFetch: () => void;
   loading: boolean;
   error: string | null;
 }
 
-export function Settings({ channelId, onSave, onFetch, loading, error }: Props) {
-  const [localChannel, setLocalChannel] = useState(channelId);
-
+export function Settings({ onFetch, loading, error }: Props) {
   const [lineToken, setLineToken] = useState(() => loadLineConfig().channelAccessToken);
   const [lineGroupId, setLineGroupId] = useState(() => loadLineConfig().groupId);
   const [lineTestStatus, setLineTestStatus] = useState<{ ok: boolean; message: string } | null>(null);
   const [lineTesting, setLineTesting] = useState(false);
-
-  function handleSave() {
-    onSave(localChannel.trim());
-  }
 
   function handleLineSave() {
     saveLineConfig({ channelAccessToken: lineToken.trim(), groupId: lineGroupId.trim() });
@@ -52,23 +44,8 @@ export function Settings({ channelId, onSave, onFetch, loading, error }: Props) 
           </a>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">チャンネル ID</label>
-          <input
-            type="text"
-            className="form-input"
-            placeholder="UCxxxxxxxxxxxxxxxxxxxxxxxx"
-            value={localChannel}
-            onChange={(e) => setLocalChannel(e.target.value)}
-          />
-          <p className="form-hint">YouTube Studio → 設定 → チャンネル → 基本情報 からコピーできます。</p>
-        </div>
-
         <div className="form-actions">
-          <button className="btn btn-primary" onClick={handleSave}>
-            <Save size={16} /> 保存
-          </button>
-          <button className="btn btn-secondary" onClick={onFetch} disabled={loading || !localChannel}>
+          <button className="btn btn-secondary" onClick={onFetch} disabled={loading}>
             <RefreshCw size={16} className={loading ? 'spin' : ''} />
             {loading ? '読み込み中…' : 'データ更新'}
           </button>
