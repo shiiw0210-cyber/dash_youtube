@@ -137,11 +137,98 @@ export function Settings({ onFetch, loading, error }: Props) {
         </div>
       </div>
 
+      {/* YouTube Analytics OAuth */}
+      <div className="settings-card">
+        <h3 className="settings-section-title">YouTube Analytics（OAuth 連携）</h3>
+        <div className="info-banner" style={{ marginBottom: 16 }}>
+          インプレッション・CTR・視聴維持率・推定収益を YouTube Analytics API から自動取得します。
+          初回のみ以下の手順で <code>refresh_token</code> を取得し、Vercel 環境変数に登録してください。
+          <a
+            href="https://developers.google.com/youtube/analytics/reference/reports/query"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="label-link"
+            style={{ marginLeft: 8 }}
+          >
+            <ExternalLink size={12} /> Analytics API ドキュメント
+          </a>
+        </div>
+
+        <div className="line-setup-steps">
+          <h4>セットアップ手順（初回のみ・約5分）</h4>
+          <ol>
+            <li>
+              <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer">
+                Google Cloud Console
+              </a>
+              → APIs &amp; Services → Library で <strong>「YouTube Analytics API」</strong> を有効化
+            </li>
+            <li>
+              Credentials → Create Credentials →{' '}
+              <strong>OAuth client ID</strong> を作成
+              <ul>
+                <li>Application type: <code>Web application</code></li>
+                <li>
+                  Authorized redirect URIs:{' '}
+                  <code>https://developers.google.com/oauthplayground</code>
+                </li>
+              </ul>
+            </li>
+            <li>発行された <strong>Client ID</strong> と <strong>Client Secret</strong> をメモ</li>
+            <li>
+              <a
+                href="https://developers.google.com/oauthplayground/"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                OAuth 2.0 Playground
+              </a>{' '}
+              を開く → 右上ギア ⚙ → <strong>Use your own OAuth credentials</strong> にチェック →
+              Client ID / Secret を貼り付け
+            </li>
+            <li>
+              左欄に以下のスコープを入力して <strong>Authorize APIs</strong>:
+              <ul>
+                <li>
+                  <code>https://www.googleapis.com/auth/yt-analytics.readonly</code>
+                </li>
+                <li>
+                  <code>https://www.googleapis.com/auth/yt-analytics-monetary.readonly</code>
+                </li>
+              </ul>
+            </li>
+            <li>
+              自分の YouTube アカウントで承認 → <strong>Exchange authorization code for tokens</strong> をクリック
+            </li>
+            <li>
+              表示された <strong>Refresh token</strong> をコピー（一度しか表示されない場合があるので注意）
+            </li>
+            <li>
+              Vercel ダッシュボード → Project Settings → Environment Variables に以下を登録し、再デプロイ:
+              <ul>
+                <li><code>GOOGLE_OAUTH_CLIENT_ID</code></li>
+                <li><code>GOOGLE_OAUTH_CLIENT_SECRET</code></li>
+                <li><code>GOOGLE_OAUTH_REFRESH_TOKEN</code></li>
+              </ul>
+            </li>
+            <li>
+              ダッシュボードで「データ更新」ボタンを押し、Analytics データが自動反映されることを確認
+            </li>
+          </ol>
+        </div>
+
+        <p className="form-hint" style={{ marginTop: 12 }}>
+          ※ 収益が <code>—</code> と表示される場合、チャンネルが YouTube パートナープログラム未参加か、
+          <code>yt-analytics-monetary.readonly</code> スコープが認可されていない可能性があります。
+        </p>
+      </div>
+
       {/* ローカルストレージ */}
       <div className="settings-card">
         <h3 className="settings-section-title">プライバシー</h3>
         <p className="form-hint">
-          チャンネル ID および LINE トークンはブラウザのローカルストレージに保存されます。YouTube APIキーはサーバー側の環境変数で管理され、ブラウザには保存されません。
+          チャンネル ID および LINE トークンはブラウザのローカルストレージに保存されます。
+          YouTube APIキー・OAuth クレデンシャル・LINE サーバー送信用トークンはすべてサーバー側の環境変数で管理され、ブラウザには保存されません。
         </p>
       </div>
     </div>

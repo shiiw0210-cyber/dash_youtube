@@ -1,9 +1,15 @@
 import { useState, useCallback } from 'react';
-import type { ChannelStats, VideoStats } from '../types';
+import type { ChannelStats, VideoStats, AnalyticsTotals } from '../types';
+
+export interface AnalyticsResult {
+  videos: Partial<VideoStats>[];
+  totals: AnalyticsTotals;
+}
 
 export function useYouTubeApi() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [analyticsError, setAnalyticsError] = useState<string | null>(null);
 
   const fetchChannel = useCallback(async (channelId: string): Promise<ChannelStats | null> => {
     setLoading(true);
@@ -76,5 +82,64 @@ export function useYouTubeApi() {
     }
   }, []);
 
-  return { fetchChannel, fetchVideos, loading, error };
+  const fetchAnalytics = useCallback(
+    async (videoIds: string[]): Promise<AnalyticsResult | null> => {
+      if (videoIds.length === 0) return null;
+      setAnalyticsError(null);
+      try {
+        const res = await fetch(
+          `/api/youtube/analytics?videoIds=${encodeURIComponent(videoIds.join(','))}`
+        );
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as {
+            error?: string;
+            missing?: string[];
+            hint?: string;
+          };
+          const msg = data.missing?.length
+            ? `OAuth 未設定: ${data.missing.join(', ')}`
+            : data.error ?? `API Error: ${res.status}`;
+          throw new Error(msg);
+        }
+        const data = (await res.json()) as {
+          videos: Array<{
+            videoId: string;
+            views?: number;
+            impressions?: number;
+            ctr?: number;
+            averageViewPercentage?: number;
+            averageViewDuration?: number;
+            estimatedMinutesWatched?: number;
+            estimatedRevenue?: number;
+            subscribersGained?: number;
+          }>;
+          totals: AnalyticsTotals;
+          startDate: string;
+          endDate: string;
+        };
+
+        const mergedVideos: Partial<VideoStats>[] = data.videos.map((v) => ({
+          videoId: v.videoId,
+          impressions: v.impressions,
+          ctr: v.ctr,
+          averageViewPercentage: v.averageViewPercentage,
+          averageViewDuration: v.averageViewDuration,
+          watchTimeMinutes: v.estimatedMinutesWatched,
+          estimatedRevenue: v.estimatedRevenue,
+          subscribersGained: v.subscribersGained,
+        }));
+
+        return {
+          videos: mergedVideos,
+          totals: { ...data.totals, startDate: data.startDate, endDate: data.endDate },
+        };
+      } catch (e) {
+        setAnalyticsError(e instanceof Error ? e.message : '不明なエラー');
+        return null;
+      }
+    },
+    []
+  );
+
+  return { fetchChannel, fetchVideos, fetchAnalytics, loading, error, analyticsError };
 }

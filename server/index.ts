@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import analyticsHandler from '../api/youtube/analytics.js';
 
 const app = express();
 const PORT = 3001;
@@ -105,6 +106,13 @@ app.get('/api/sheets/schedule', async (_req, res) => {
 
 app.post('/api/sheets/schedule', async (req, res) => {
   await proxyGas(req.body ?? {}, res);
+});
+
+/** YouTube Analytics API proxy (local dev) */
+app.get('/api/youtube/analytics', async (req, res) => {
+  // Vercel ハンドラーと Express Request/Response は互換性があるのでそのまま委譲
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  await analyticsHandler(req as any, res as any);
 });
 
 /** テスト用 ping */

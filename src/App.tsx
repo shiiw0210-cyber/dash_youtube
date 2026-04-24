@@ -11,7 +11,7 @@ import { Settings } from './components/Settings';
 import { Schedule } from './components/Schedule';
 import { CtrRanking } from './components/CtrRanking';
 import { useYouTubeApi } from './hooks/useYouTubeApi';
-import type { ActiveView, ChannelStats, VideoStats, DailyMetrics } from './types';
+import type { ActiveView, ChannelStats, VideoStats, DailyMetrics, AnalyticsTotals } from './types';
 
 const CHANNEL_ID = 'UCmxAaack6dmXAxwgnhzX0MQ';
 
@@ -22,8 +22,9 @@ export function App() {
   const [channel, setChannel] = useState<ChannelStats | null>(null);
   const [videos, setVideos] = useState<VideoStats[]>([]);
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics[]>([]);
+  const [analyticsTotals, setAnalyticsTotals] = useState<AnalyticsTotals | null>(null);
 
-  const { fetchChannel, fetchVideos, loading, error } = useYouTubeApi();
+  const { fetchChannel, fetchVideos, fetchAnalytics, loading, error, analyticsError } = useYouTubeApi();
 
   const handleFetch = useCallback(async () => {
     const [ch, vids] = await Promise.all([
@@ -31,8 +32,22 @@ export function App() {
       fetchVideos(CHANNEL_ID),
     ]);
     if (ch) setChannel(ch);
-    if (vids.length > 0) setVideos(vids);
-  }, [fetchChannel, fetchVideos]);
+    if (vids.length === 0) return;
+
+    setVideos(vids);
+
+    const analytics = await fetchAnalytics(vids.map((v) => v.videoId));
+    if (!analytics) return;
+
+    const byId = new Map(analytics.videos.map((v) => [v.videoId, v]));
+    setVideos((prev) =>
+      prev.map((v) => {
+        const a = byId.get(v.videoId);
+        return a ? { ...v, ...a } : v;
+      })
+    );
+    setAnalyticsTotals(analytics.totals);
+  }, [fetchChannel, fetchVideos, fetchAnalytics]);
 
   function handleToggleMobilePreview() {
     setMobilePreview((prev) => {
@@ -91,7 +106,14 @@ export function App() {
         onToggleMobilePreview={handleToggleMobilePreview}
       />
       <main className="main">
-        {activeView === 'overview' && <Overview channel={channel} videos={videos} />}
+        {activeView === 'overview' && (
+          <Overview
+            channel={channel}
+            videos={videos}
+            analyticsTotals={analyticsTotals}
+            analyticsError={analyticsError}
+          />
+        )}
         {activeView === 'schedule' && <Schedule videos={videos} />}
         {activeView === 'alerts' && <Alerts videos={videos} />}
         {activeView === 'ctr' && <CtrRanking videos={videos} />}
