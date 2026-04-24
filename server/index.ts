@@ -72,6 +72,41 @@ app.post('/api/line/push', async (req, res) => {
   }
 });
 
+/** Google Apps Script Web App プロキシ (スケジュールシート) */
+async function proxyGas(body: Record<string, unknown> | null, res: express.Response) {
+  const url = process.env.GAS_WEB_APP_URL;
+  const secret = process.env.GAS_SHARED_SECRET;
+  if (!url || !secret) {
+    res.status(500).json({ error: 'GAS_WEB_APP_URL / GAS_SHARED_SECRET が設定されていません' });
+    return;
+  }
+  try {
+    const gasRes = body === null
+      ? await fetch(`${url}?secret=${encodeURIComponent(secret)}`, { redirect: 'follow' })
+      : await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...body, secret }),
+          redirect: 'follow',
+        });
+    const data = await gasRes.json().catch(() => ({}));
+    const status = typeof (data as { status?: number }).status === 'number'
+      ? (data as { status: number }).status
+      : gasRes.status;
+    res.status(status).json(data);
+  } catch (e) {
+    res.status(500).json({ error: String(e) });
+  }
+}
+
+app.get('/api/sheets/schedule', async (_req, res) => {
+  await proxyGas(null, res);
+});
+
+app.post('/api/sheets/schedule', async (req, res) => {
+  await proxyGas(req.body ?? {}, res);
+});
+
 /** テスト用 ping */
 app.get('/api/ping', (_req, res) => {
   res.json({ ok: true });
