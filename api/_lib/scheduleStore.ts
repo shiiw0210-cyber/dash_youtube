@@ -166,10 +166,49 @@ export interface DiagnosticResult {
   envSupabaseUrl: 'set' | 'missing';
   envServiceRoleKey: 'set' | 'missing';
   supabaseUrlPreview: string | null;
+  serviceKeyShape: {
+    length: number;
+    looksLikeJwt: boolean;
+    role: string | null;
+    issuerRef: string | null;
+  } | null;
+  urlProjectRef: string | null;
+  refMatch: 'match' | 'mismatch' | 'unknown';
   tableCheck: 'ok' | 'error' | 'skipped';
   rowCount: number | null;
   error: string | null;
+  errorCode: string | null;
+  errorDetails: string | null;
+  errorHintRaw: string | null;
+  errorRaw: string | null;
   hint: string | null;
+}
+
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  const parts = token.split('.');
+  if (parts.length !== 3) return null;
+  try {
+    const padded = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = Buffer.from(padded, 'base64').toString('utf-8');
+    return JSON.parse(json) as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+function inspectKey(key: string): DiagnosticResult['serviceKeyShape'] {
+  const payload = decodeJwtPayload(key);
+  return {
+    length: key.length,
+    looksLikeJwt: payload !== null,
+    role: payload && typeof payload.role === 'string' ? payload.role : null,
+    issuerRef: payload && typeof payload.ref === 'string' ? payload.ref : null,
+  };
+}
+
+function urlRef(url: string): string | null {
+  const m = /^https:\/\/([a-z0-9-]+)\.supabase\.co/i.exec(url);
+  return m ? m[1] : null;
 }
 
 export async function diagnose(): Promise<DiagnosticResult> {
@@ -179,9 +218,16 @@ export async function diagnose(): Promise<DiagnosticResult> {
     envSupabaseUrl: url ? 'set' : 'missing',
     envServiceRoleKey: key ? 'set' : 'missing',
     supabaseUrlPreview: url ? url.replace(/^(https?:\/\/[^.]+)\..*/, '$1.…') : null,
+    serviceKeyShape: key ? inspectKey(key) : null,
+    urlProjectRef: url ? urlRef(url) : null,
+    refMatch: 'unknown',
     tableCheck: 'skipped',
     rowCount: null,
     error: null,
+    errorCode: null,
+    errorDetails: null,
+    errorHintRaw: null,
+    errorRaw: null,
     hint: null,
   };
 
@@ -197,6 +243,23 @@ export async function diagnose(): Promise<DiagnosticResult> {
     return result;
   }
 
+  if (result.serviceKeyShape && result.urlProjectRef && result.serviceKeyShape.issuerRef) {
+    result.refMatch = result.serviceKeyShape.issuerRef === result.urlProjectRef ? 'match' : 'mismatch';
+    if (result.refMatch === 'mismatch') {
+      result.tableCheck = 'error';
+      result.error = `URL のプロジェクト (${result.urlProjectRef}) と service_role キー (${result.serviceKeyShape.issuerRef}) が別プロジェクトです`;
+      result.hint = '同じ Supabase プロジェクトの Project URL と service_role キーをセットで設定してください';
+      return result;
+    }
+  }
+
+  if (result.serviceKeyShape && result.serviceKeyShape.role && result.serviceKeyShape.role !== 'service_role') {
+    result.tableCheck = 'error';
+    result.error = `キーの role が "${result.serviceKeyShape.role}" になっています (期待値: "service_role")`;
+    result.hint = 'API Keys 画面の anon (public) キーではなく service_role (secret) キーをコピーして設定してください';
+    return result;
+  }
+
   try {
     const sb = getClient();
     const { count, error } = await sb
@@ -204,11 +267,22 @@ export async function diagnose(): Promise<DiagnosticResult> {
       .select('id', { count: 'exact', head: true });
     if (error) {
       result.tableCheck = 'error';
-      result.error = error.message;
-      if (/relation .* does not exist/i.test(error.message) || /Could not find the table/i.test(error.message)) {
+      result.error = error.message || '(empty message)';
+      result.errorCode = (error as { code?: string }).code ?? null;
+      result.errorDetails = (error as { details?: string }).details ?? null;
+      result.errorHintRaw = (error as { hint?: string }).hint ?? null;
+      try {
+        result.errorRaw = JSON.stringify(error, Object.getOwnPropertyNames(error)).slice(0, 500);
+      } catch {
+        result.errorRaw = String(error);
+      }
+      const allMsg = `${error.message ?? ''} ${result.errorDetails ?? ''} ${result.errorCode ?? ''}`;
+      if (/relation .* does not exist/i.test(allMsg) || /Could not find the table/i.test(allMsg) || /PGRST(20[24])/i.test(allMsg)) {
         result.hint = `Supabase の SQL Editor で supabase/schema.sql を実行して "${TABLE}" テーブルを作成してください`;
-      } else if (/Invalid API key/i.test(error.message) || /JWT/i.test(error.message)) {
+      } else if (/Invalid API key/i.test(allMsg) || /JWT/i.test(allMsg)) {
         result.hint = 'SUPABASE_SERVICE_ROLE_KEY が anon キーやダミー値になっていないか確認してください';
+      } else if (/permission denied/i.test(allMsg) || /RLS/i.test(allMsg)) {
+        result.hint = 'RLS ポリシーが不足しています。schema.sql の "alter table ... disable row level security" を実行してください';
       }
       return result;
     }
@@ -218,6 +292,9 @@ export async function diagnose(): Promise<DiagnosticResult> {
   } catch (e) {
     result.tableCheck = 'error';
     result.error = e instanceof Error ? e.message : String(e);
+    if (e instanceof Error && e.stack) {
+      result.errorRaw = e.stack.split('\n').slice(0, 5).join(' | ');
+    }
     return result;
   }
 }
