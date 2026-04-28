@@ -5,7 +5,7 @@ import {
   diagnose,
   listSchedules,
   updateSchedule,
-} from '../../lib/scheduleStore';
+} from '../_lib/scheduleStore';
 
 interface ErrorPayload {
   error: string;

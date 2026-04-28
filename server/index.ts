@@ -6,7 +6,7 @@ import {
   diagnose,
   listSchedules,
   updateSchedule,
-} from '../lib/scheduleStore';
+} from '../api/_lib/scheduleStore';
 
 const app = express();
 const PORT = 3001;
