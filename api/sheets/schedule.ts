@@ -40,7 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Dynamic import: any module-loading failure (missing dep, ESM/CJS mismatch,
     // bundler issue) is caught here and reported as JSON instead of crashing
     // the function with FUNCTION_INVOCATION_FAILED.
-    const store = await import('../_lib/scheduleStore');
+    const store = await import('../_lib/scheduleStore.js');
     const { createSchedule, deleteSchedule, diagnose, listSchedules, updateSchedule } = store;
 
     if (req.method === 'GET' && (req.query.diag === '1' || req.query.diag === 'true')) {
