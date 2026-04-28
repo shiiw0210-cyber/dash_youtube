@@ -1,53 +1,55 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-
-async function postPreservingMethod(url: string, payload: object): Promise<Response> {
-  const init: RequestInit = {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    redirect: 'manual',
-  };
-  let current = url;
-  for (let i = 0; i < 5; i++) {
-    const res = await fetch(current, init);
-    if (res.status < 300 || res.status >= 400) return res;
-    const location = res.headers.get('location');
-    if (!location) return res;
-    current = new URL(location, current).toString();
-  }
-  throw new Error('Too many redirects');
-}
+import {
+  createSchedule,
+  deleteSchedule,
+  listSchedules,
+  updateSchedule,
+} from '../../lib/scheduleStore';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const url = process.env.GAS_WEB_APP_URL;
-  const secret = process.env.GAS_SHARED_SECRET;
-  if (!url || !secret) {
-    res.status(500).json({ error: 'GAS_WEB_APP_URL / GAS_SHARED_SECRET が設定されていません' });
-    return;
-  }
-
   try {
     if (req.method === 'GET') {
-      const gasRes = await fetch(`${url}?secret=${encodeURIComponent(secret)}`, {
-        redirect: 'follow',
-      });
-      const data = await gasRes.json().catch(() => ({}));
-      const status = typeof (data as { status?: number }).status === 'number' ? (data as { status: number }).status : gasRes.status;
-      res.status(status).json(data);
+      const rows = await listSchedules();
+      res.status(200).json({ rows });
       return;
     }
 
     if (req.method === 'POST') {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body ?? {};
-      const gasRes = await postPreservingMethod(url, { ...body, secret });
-      const data = await gasRes.json().catch(() => ({}));
-      const status = typeof (data as { status?: number }).status === 'number' ? (data as { status: number }).status : gasRes.status;
-      res.status(status).json(data);
-      return;
+      switch (body.action) {
+        case 'create': {
+          const row = await createSchedule(body.row ?? {});
+          res.status(200).json({ row });
+          return;
+        }
+        case 'update': {
+          const result = await updateSchedule(body.row ?? {});
+          if (result.kind === 'ok') {
+            res.status(200).json({ row: result.row });
+            return;
+          }
+          if (result.kind === 'notFound') {
+            res.status(404).json({ error: 'row not found' });
+            return;
+          }
+          res
+            .status(409)
+            .json({ error: 'conflict', currentUpdatedAt: result.currentUpdatedAt });
+          return;
+        }
+        case 'delete': {
+          const ok = await deleteSchedule(body.id ?? '');
+          res.status(200).json({ ok });
+          return;
+        }
+        default:
+          res.status(400).json({ error: `unknown action: ${body.action}` });
+          return;
+      }
     }
 
     res.status(405).json({ error: 'Method not allowed' });
   } catch (e) {
-    res.status(500).json({ error: String(e) });
+    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
   }
 }

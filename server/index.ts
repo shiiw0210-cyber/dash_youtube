@@ -1,5 +1,11 @@
 import express from 'express';
 import cors from 'cors';
+import {
+  createSchedule,
+  deleteSchedule,
+  listSchedules,
+  updateSchedule,
+} from '../lib/scheduleStore';
 
 const app = express();
 const PORT = 3001;
@@ -72,52 +78,49 @@ app.post('/api/line/push', async (req, res) => {
   }
 });
 
-/** Google Apps Script Web App プロキシ (スケジュールシート) */
-async function postPreservingMethod(url: string, payload: object): Promise<Response> {
-  const init: RequestInit = {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-    redirect: 'manual',
-  };
-  let current = url;
-  for (let i = 0; i < 5; i++) {
-    const response = await fetch(current, init);
-    if (response.status < 300 || response.status >= 400) return response;
-    const location = response.headers.get('location');
-    if (!location) return response;
-    current = new URL(location, current).toString();
-  }
-  throw new Error('Too many redirects');
-}
-
-async function proxyGas(body: Record<string, unknown> | null, res: express.Response) {
-  const url = process.env.GAS_WEB_APP_URL;
-  const secret = process.env.GAS_SHARED_SECRET;
-  if (!url || !secret) {
-    res.status(500).json({ error: 'GAS_WEB_APP_URL / GAS_SHARED_SECRET が設定されていません' });
-    return;
-  }
-  try {
-    const gasRes = body === null
-      ? await fetch(`${url}?secret=${encodeURIComponent(secret)}`, { redirect: 'follow' })
-      : await postPreservingMethod(url, { ...body, secret });
-    const data = await gasRes.json().catch(() => ({}));
-    const status = typeof (data as { status?: number }).status === 'number'
-      ? (data as { status: number }).status
-      : gasRes.status;
-    res.status(status).json(data);
-  } catch (e) {
-    res.status(500).json({ error: String(e) });
-  }
-}
-
+/** Supabase 経由のスケジュール CRUD */
 app.get('/api/sheets/schedule', async (_req, res) => {
-  await proxyGas(null, res);
+  try {
+    const rows = await listSchedules();
+    res.json({ rows });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
+  }
 });
 
 app.post('/api/sheets/schedule', async (req, res) => {
-  await proxyGas(req.body ?? {}, res);
+  try {
+    const body = (req.body ?? {}) as { action?: string; row?: Record<string, unknown>; id?: string };
+    switch (body.action) {
+      case 'create': {
+        const row = await createSchedule(body.row ?? {});
+        res.json({ row });
+        return;
+      }
+      case 'update': {
+        const result = await updateSchedule((body.row ?? {}) as { id: string });
+        if (result.kind === 'ok') {
+          res.json({ row: result.row });
+          return;
+        }
+        if (result.kind === 'notFound') {
+          res.status(404).json({ error: 'row not found' });
+          return;
+        }
+        res.status(409).json({ error: 'conflict', currentUpdatedAt: result.currentUpdatedAt });
+        return;
+      }
+      case 'delete': {
+        const ok = await deleteSchedule(body.id ?? '');
+        res.json({ ok });
+        return;
+      }
+      default:
+        res.status(400).json({ error: `unknown action: ${body.action}` });
+    }
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
+  }
 });
 
 /** テスト用 ping */
