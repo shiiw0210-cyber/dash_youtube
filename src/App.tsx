@@ -11,8 +11,10 @@ import { Settings } from './components/Settings';
 import { Schedule } from './components/Schedule';
 import { CtrRanking } from './components/CtrRanking';
 import { ViralAnalysis } from './components/ViralAnalysis';
+import { ThumbnailAnalysis } from './components/ThumbnailAnalysis';
 import { useYouTubeApi } from './hooks/useYouTubeApi';
 import { useViralExtras } from './hooks/useViralExtras';
+import { useThumbnailMeta } from './hooks/useThumbnailMeta';
 import type { ActiveView, ChannelStats, VideoStats, DailyMetrics } from './types';
 
 const CHANNEL_ID = 'UCmxAaack6dmXAxwgnhzX0MQ';
@@ -27,6 +29,7 @@ export function App() {
 
   const { fetchChannel, fetchVideos, loading, error } = useYouTubeApi();
   const { extrasMap, updateExtras, clearExtras } = useViralExtras();
+  const { metaMap: thumbnailMetaMap, updateMeta: updateThumbnailMeta, clearMeta: clearThumbnailMeta } = useThumbnailMeta();
 
   const handleFetch = useCallback(async () => {
     const [ch, vids] = await Promise.all([
@@ -107,6 +110,14 @@ export function App() {
             extrasMap={extrasMap}
             onUpdateExtras={updateExtras}
             onClearExtras={clearExtras}
+          />
+        )}
+        {activeView === 'thumbnail' && (
+          <ThumbnailAnalysis
+            videos={videos}
+            metaMap={thumbnailMetaMap}
+            onUpdateMeta={updateThumbnailMeta}
+            onClearMeta={clearThumbnailMeta}
           />
         )}
         {activeView === 'csv' && (
