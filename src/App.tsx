@@ -10,7 +10,9 @@ import { CsvImport } from './components/CsvImport';
 import { Settings } from './components/Settings';
 import { Schedule } from './components/Schedule';
 import { CtrRanking } from './components/CtrRanking';
+import { ViralAnalysis } from './components/ViralAnalysis';
 import { useYouTubeApi } from './hooks/useYouTubeApi';
+import { useViralExtras } from './hooks/useViralExtras';
 import type { ActiveView, ChannelStats, VideoStats, DailyMetrics } from './types';
 
 const CHANNEL_ID = 'UCmxAaack6dmXAxwgnhzX0MQ';
@@ -24,6 +26,7 @@ export function App() {
   const [dailyMetrics, setDailyMetrics] = useState<DailyMetrics[]>([]);
 
   const { fetchChannel, fetchVideos, loading, error } = useYouTubeApi();
+  const { extrasMap, updateExtras, clearExtras } = useViralExtras();
 
   const handleFetch = useCallback(async () => {
     const [ch, vids] = await Promise.all([
@@ -98,6 +101,14 @@ export function App() {
         {activeView === 'videos' && <VideoTable videos={videos} />}
         {activeView === 'analytics' && <Charts dailyMetrics={dailyMetrics} videos={videos} />}
         {activeView === 'content' && <ContentAnalysis videos={videos} />}
+        {activeView === 'viral' && (
+          <ViralAnalysis
+            videos={videos}
+            extrasMap={extrasMap}
+            onUpdateExtras={updateExtras}
+            onClearExtras={clearExtras}
+          />
+        )}
         {activeView === 'csv' && (
           <CsvImport
             onDailyMetrics={setDailyMetrics}

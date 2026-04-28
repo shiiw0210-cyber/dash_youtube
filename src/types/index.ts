@@ -59,4 +59,37 @@ export type ActiveView =
   | 'csv'
   | 'schedule'
   | 'ctr'
+  | 'viral'
   | 'settings';
+
+/**
+ * 「伸びる動画」分析のための手入力データ。
+ * YouTube Data API では取得できない初動データ・トラフィックソース・
+ * 主観タグなどを動画単位で保持する。localStorage に永続化される。
+ */
+export interface ViralExtras {
+  videoId: string;
+  /** 公開後 24 時間の再生数 */
+  views24h?: number;
+  /** 公開後 48 時間の再生数 */
+  views48h?: number;
+  /** 公開後 72 時間の再生数 */
+  views72h?: number;
+  /** 公開後 7 日の再生数 */
+  views7d?: number;
+  /** この動画から獲得した登録者数 */
+  subscribersGained?: number;
+  /** 平均視聴維持率 0〜100 (%) */
+  audienceRetentionPct?: number;
+  /** トラフィックソース割合 0〜100 (%) — 合計 100% 想定 */
+  trafficBrowse?: number;
+  trafficSearch?: number;
+  trafficSuggested?: number;
+  trafficExternal?: number;
+  /** 主観タグ（例: "コラボ", "トレンド便乗", "サムネA/B"） */
+  tags?: string[];
+  /** メモ */
+  notes?: string;
+  /** 最終更新日時 */
+  updatedAt?: string;
+}
