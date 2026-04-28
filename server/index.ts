@@ -73,6 +73,24 @@ app.post('/api/line/push', async (req, res) => {
 });
 
 /** Google Apps Script Web App プロキシ (スケジュールシート) */
+async function postPreservingMethod(url: string, payload: object): Promise<Response> {
+  const init: RequestInit = {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+    redirect: 'manual',
+  };
+  let current = url;
+  for (let i = 0; i < 5; i++) {
+    const response = await fetch(current, init);
+    if (response.status < 300 || response.status >= 400) return response;
+    const location = response.headers.get('location');
+    if (!location) return response;
+    current = new URL(location, current).toString();
+  }
+  throw new Error('Too many redirects');
+}
+
 async function proxyGas(body: Record<string, unknown> | null, res: express.Response) {
   const url = process.env.GAS_WEB_APP_URL;
   const secret = process.env.GAS_SHARED_SECRET;
@@ -83,12 +101,7 @@ async function proxyGas(body: Record<string, unknown> | null, res: express.Respo
   try {
     const gasRes = body === null
       ? await fetch(`${url}?secret=${encodeURIComponent(secret)}`, { redirect: 'follow' })
-      : await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, secret }),
-          redirect: 'follow',
-        });
+      : await postPreservingMethod(url, { ...body, secret });
     const data = await gasRes.json().catch(() => ({}));
     const status = typeof (data as { status?: number }).status === 'number'
       ? (data as { status: number }).status
