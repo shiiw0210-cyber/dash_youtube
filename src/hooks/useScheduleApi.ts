@@ -3,15 +3,25 @@ import type { ScheduleRow } from '../types';
 
 export type ScheduleDraft = Omit<ScheduleRow, 'id' | 'updatedAt' | 'todo'>;
 
-type GasResponse<T> = T & { error?: string; status?: number };
+type ApiResponse<T> = T & { error?: string; details?: string; hint?: string; status?: number };
 
-async function parse<T>(res: Response): Promise<GasResponse<T>> {
-  return (await res.json().catch(() => ({}))) as GasResponse<T>;
+async function parse<T>(res: Response): Promise<ApiResponse<T>> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as ApiResponse<T>;
+  } catch {
+    const snippet = text.trim().slice(0, 300);
+    return { error: snippet || `HTTP ${res.status}` } as ApiResponse<T>;
+  }
 }
 
-function errorMessage(status: number, body: { error?: string }): string {
+function errorMessage(status: number, body: { error?: string; details?: string; hint?: string }): string {
   if (status === 409) return '別の更新と競合しました。再読み込みしてください。';
-  if (body?.error) return body.error;
+  const parts: string[] = [];
+  if (body?.error) parts.push(body.error);
+  if (body?.hint) parts.push(`(${body.hint})`);
+  if (body?.details && body.details !== body.error) parts.push(`[${body.details}]`);
+  if (parts.length > 0) return `${status}: ${parts.join(' ')}`;
   return `API Error: ${status}`;
 }
 

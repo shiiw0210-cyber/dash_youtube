@@ -3,6 +3,7 @@ import cors from 'cors';
 import {
   createSchedule,
   deleteSchedule,
+  diagnose,
   listSchedules,
   updateSchedule,
 } from '../lib/scheduleStore';
@@ -79,12 +80,31 @@ app.post('/api/line/push', async (req, res) => {
 });
 
 /** Supabase 経由のスケジュール CRUD */
-app.get('/api/sheets/schedule', async (_req, res) => {
+function buildErrorPayload(e: unknown): { error: string; details?: string; hint?: string } {
+  const msg = e instanceof Error ? e.message : String(e);
+  const payload: { error: string; details?: string; hint?: string } = { error: msg };
+  if (/SUPABASE_URL \/ SUPABASE_SERVICE_ROLE_KEY/.test(msg)) {
+    payload.hint = '.env.local に SUPABASE_URL と SUPABASE_SERVICE_ROLE_KEY を設定して再起動してください';
+  } else if (/relation .* does not exist/i.test(msg) || /Could not find the table/i.test(msg)) {
+    payload.hint = 'Supabase の SQL Editor で supabase/schema.sql を実行してテーブルを作成してください';
+  } else if (/Invalid API key/i.test(msg) || /JWT/i.test(msg)) {
+    payload.hint = 'SUPABASE_SERVICE_ROLE_KEY が正しい値か確認してください';
+  }
+  if (e instanceof Error && e.stack) payload.details = e.stack.split('\n').slice(0, 3).join(' | ');
+  return payload;
+}
+
+app.get('/api/sheets/schedule', async (req, res) => {
   try {
+    if (req.query.diag === '1' || req.query.diag === 'true') {
+      res.json(await diagnose());
+      return;
+    }
     const rows = await listSchedules();
     res.json({ rows });
   } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
+    console.error('[GET /api/sheets/schedule]', e);
+    res.status(500).json(buildErrorPayload(e));
   }
 });
 
@@ -119,7 +139,8 @@ app.post('/api/sheets/schedule', async (req, res) => {
         res.status(400).json({ error: `unknown action: ${body.action}` });
     }
   } catch (e) {
-    res.status(500).json({ error: e instanceof Error ? e.message : String(e) });
+    console.error('[POST /api/sheets/schedule]', e);
+    res.status(500).json(buildErrorPayload(e));
   }
 });
 
