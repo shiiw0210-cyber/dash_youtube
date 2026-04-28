@@ -1,11 +1,4 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import {
-  createSchedule,
-  deleteSchedule,
-  diagnose,
-  listSchedules,
-  updateSchedule,
-} from '../_lib/scheduleStore';
 
 interface ErrorPayload {
   error: string;
@@ -25,7 +18,10 @@ function fail(res: VercelResponse, status: number, payload: ErrorPayload, e?: un
 function buildErrorPayload(e: unknown): ErrorPayload {
   const msg = e instanceof Error ? e.message : String(e);
   const payload: ErrorPayload = { error: msg };
-  if (/SUPABASE_URL \/ SUPABASE_SERVICE_ROLE_KEY/.test(msg)) {
+  if (/Cannot find module|MODULE_NOT_FOUND/.test(msg)) {
+    payload.hint =
+      'モジュール解決に失敗しました。Vercel の Functions ログでスタックトレースを確認してください';
+  } else if (/SUPABASE_URL \/ SUPABASE_SERVICE_ROLE_KEY/.test(msg)) {
     payload.hint =
       'Vercel の Environment Variables に SUPABASE_URL と SUPABASE_SERVICE_ROLE_KEY を設定し Redeploy してください';
   } else if (/relation .* does not exist/i.test(msg) || /Could not find the table/i.test(msg)) {
@@ -41,6 +37,12 @@ function buildErrorPayload(e: unknown): ErrorPayload {
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
+    // Dynamic import: any module-loading failure (missing dep, ESM/CJS mismatch,
+    // bundler issue) is caught here and reported as JSON instead of crashing
+    // the function with FUNCTION_INVOCATION_FAILED.
+    const store = await import('../_lib/scheduleStore.js');
+    const { createSchedule, deleteSchedule, diagnose, listSchedules, updateSchedule } = store;
+
     if (req.method === 'GET' && (req.query.diag === '1' || req.query.diag === 'true')) {
       const result = await diagnose();
       res.status(200).json(result);
