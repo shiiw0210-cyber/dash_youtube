@@ -161,3 +161,63 @@ export async function deleteSchedule(id: string): Promise<boolean> {
   if (error) throw new Error(error.message);
   return Array.isArray(data) && data.length > 0;
 }
+
+export interface DiagnosticResult {
+  envSupabaseUrl: 'set' | 'missing';
+  envServiceRoleKey: 'set' | 'missing';
+  supabaseUrlPreview: string | null;
+  tableCheck: 'ok' | 'error' | 'skipped';
+  rowCount: number | null;
+  error: string | null;
+  hint: string | null;
+}
+
+export async function diagnose(): Promise<DiagnosticResult> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const result: DiagnosticResult = {
+    envSupabaseUrl: url ? 'set' : 'missing',
+    envServiceRoleKey: key ? 'set' : 'missing',
+    supabaseUrlPreview: url ? url.replace(/^(https?:\/\/[^.]+)\..*/, '$1.…') : null,
+    tableCheck: 'skipped',
+    rowCount: null,
+    error: null,
+    hint: null,
+  };
+
+  if (!url || !key) {
+    result.hint = 'Vercel の Environment Variables に SUPABASE_URL と SUPABASE_SERVICE_ROLE_KEY を設定し Redeploy してください';
+    return result;
+  }
+
+  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(url)) {
+    result.error = `SUPABASE_URL の形式が不正です: ${url}`;
+    result.hint = 'https://xxxxx.supabase.co の形式で設定してください (ダッシュボードのページURLではなく Project URL)';
+    result.tableCheck = 'error';
+    return result;
+  }
+
+  try {
+    const sb = getClient();
+    const { count, error } = await sb
+      .from(TABLE)
+      .select('id', { count: 'exact', head: true });
+    if (error) {
+      result.tableCheck = 'error';
+      result.error = error.message;
+      if (/relation .* does not exist/i.test(error.message) || /Could not find the table/i.test(error.message)) {
+        result.hint = `Supabase の SQL Editor で supabase/schema.sql を実行して "${TABLE}" テーブルを作成してください`;
+      } else if (/Invalid API key/i.test(error.message) || /JWT/i.test(error.message)) {
+        result.hint = 'SUPABASE_SERVICE_ROLE_KEY が anon キーやダミー値になっていないか確認してください';
+      }
+      return result;
+    }
+    result.tableCheck = 'ok';
+    result.rowCount = count ?? 0;
+    return result;
+  } catch (e) {
+    result.tableCheck = 'error';
+    result.error = e instanceof Error ? e.message : String(e);
+    return result;
+  }
+}
