@@ -1,4 +1,4 @@
-import { BarChart2, Calendar, Video, TrendingUp, Upload, Settings, Youtube, Lightbulb, AlertTriangle, MousePointerClick, X, Smartphone, Monitor, Flame, type LucideIcon } from 'lucide-react';
+import { BarChart2, Calendar, Video, TrendingUp, Upload, Settings, Youtube, Lightbulb, AlertTriangle, MousePointerClick, X, Smartphone, Monitor, Flame, Image, type LucideIcon } from 'lucide-react';
 import type { ActiveView } from '../types';
 
 interface Props {
@@ -21,6 +21,7 @@ const ITEMS: { id: ActiveView; label: string; Icon: LucideIcon }[] = [
   { id: 'analytics', label: '推移グラフ', Icon: TrendingUp },
   { id: 'content', label: 'コンテンツ分析', Icon: Lightbulb },
   { id: 'viral', label: '伸びる動画分析', Icon: Flame },
+  { id: 'thumbnail', label: 'サムネ分析', Icon: Image },
   { id: 'csv', label: 'CSVインポート', Icon: Upload },
   { id: 'settings', label: '設定', Icon: Settings },
 ];
